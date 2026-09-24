@@ -102,7 +102,7 @@ func ironic() error {
   conductor:
     initContainers:
       - name: create-tmpdir
-        image: ghcr.io/rackerlabs/understack/openstack-client:2025.2
+        image: ghcr.io/rackerlabs/understack/openstack-client:2026.1
         imagePullPolicy: IfNotPresent
         command: [bash]
         args:
