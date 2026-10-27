@@ -46,7 +46,7 @@ builds:
 
 # A single darwin_all artifact that runs on both Intel and Apple Silicon, so a
 # macOS user who is unsure which they have cannot pick wrong. replace: false
-# keeps the smaller per-arch archives too; install.sh and Homebrew use those.
+# keeps the smaller per-arch archives too; Homebrew uses those.
 universal_binaries:
   - id: understackctl-universal
     ids:
@@ -118,11 +118,7 @@ release:
   footer: |
     ## Installing
 
-    ```bash
-    curl -fsSL https://raw.githubusercontent.com/rackerlabs/understackctl/main/install.sh | sh
-    ```
-
-    Or download the archive for your platform below and move `understackctl`
+    Download the archive for your platform below and move `understackctl`
     onto your `PATH`. Verify what you downloaded first:
 
     ```bash

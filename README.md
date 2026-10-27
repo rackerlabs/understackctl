@@ -12,49 +12,13 @@ For the full command reference, see the
 Every release publishes binaries for Linux, macOS and Windows on amd64 and
 arm64. Pick whichever method suits you.
 
-### Linux and macOS — install script
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/rackerlabs/understackctl/main/install.sh | sh
-```
-
-The script detects your OS and architecture, verifies the SHA-256 checksum
-before installing, and puts the binary in `/usr/local/bin` (falling back to
-`~/.local/bin` if that is not writable).
-
-Piping a script from the internet into a shell means trusting this repository
-and the connection that fetched it. To read it first:
-
-```bash
-curl -fsSLO https://raw.githubusercontent.com/rackerlabs/understackctl/main/install.sh
-less install.sh && sh install.sh
-```
-
-It understands a few environment variables:
-
-| Variable | Purpose |
-|---|---|
-| `VERSION` | Install a specific version, e.g. `VERSION=v0.1.0` |
-| `INSTALL_DIR` | Install somewhere else, e.g. `INSTALL_DIR=~/bin` |
-| `BASE_URL` | Download from an internal mirror instead of GitHub (requires `VERSION`) |
-| `NO_VERIFY` | Set to `1` to skip checksum verification — not recommended |
-
 ### macOS — Homebrew
-
-> Not yet available. The release pipeline builds the cask but does not publish
-> it until the `rackerlabs/homebrew-tap` repository exists; see the comments in
-> [`.goreleaser.yaml`](.goreleaser.yaml).
 
 ```bash
 brew install rackerlabs/tap/understackctl
 ```
 
 ### Windows — Scoop
-
-> Not yet available, pending the `rackerlabs/scoop-bucket` repository. Until
-> then, download the `.zip` from the
-> [releases page](https://github.com/rackerlabs/understackctl/releases) and put
-> `understackctl.exe` somewhere on your `PATH`.
 
 ```powershell
 scoop bucket add rackerlabs https://github.com/rackerlabs/scoop-bucket

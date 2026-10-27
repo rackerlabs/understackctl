@@ -39,7 +39,7 @@ jobs:
           version: "~> v2"
           args: release --snapshot --clean --skip=validate
 
-      # Asserts the properties install.sh and the docs depend on, against the
+      # Asserts the properties the docs depend on, against the
       # archive a user actually downloads.
       - name: Verify release archive
         run: |
