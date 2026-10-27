@@ -135,24 +135,17 @@ release:
 
 # --- Package managers -------------------------------------------------------
 #
-# Both blocks below are configured but DISABLED (skip_upload: true) because
-# publishing needs infrastructure that does not exist yet. To turn either on:
-#
-#   1. Create the target repository under the rackerlabs org:
-#        Homebrew -> rackerlabs/homebrew-tap
-#        Scoop    -> rackerlabs/scoop-bucket
-#   2. Create a PAT with `contents: write` on that repository and add it to
-#      this repo's Actions secrets as HOMEBREW_TAP_TOKEN / SCOOP_BUCKET_TOKEN.
-#      The default GITHUB_TOKEN cannot push to another repository.
-#   3. Uncomment the matching `env:` line in .github/workflows/release.yaml.
-#   4. Change skip_upload below to false.
-#
-# Until step 4, a release builds these artifacts and does not push them, so
-# nothing here can break a release.
+# Both blocks are published by the release workflow, which mints a token from
+# the rackerlabs-package-publisher GitHub App (secrets PUBLISHER_APP_ID and
+# PUBLISHER_APP_PRIVATE_KEY) scoped to rackerlabs/homebrew-tap and
+# rackerlabs/scoop-bucket, and passes it in as HOMEBREW_TAP_TOKEN and
+# SCOOP_BUCKET_TOKEN. The default GITHUB_TOKEN cannot push to another
+# repository. Set skip_upload: true on a block to build its artifact without
+# pushing it, e.g. while testing.
 
 homebrew_casks:
   - name: understackctl
-    skip_upload: true
+    skip_upload: auto
     repository:
       owner: rackerlabs
       name: homebrew-tap
@@ -166,14 +159,12 @@ homebrew_casks:
       fish: completions/understackctl.fish
     hooks:
       post:
-        install: |
-          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/understackctl"]
-          end
+        install_steps: |
+          run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/understackctl"]
 
 scoops:
   - name: understackctl
-    skip_upload: true
+    skip_upload: auto
     repository:
       owner: rackerlabs
       name: scoop-bucket

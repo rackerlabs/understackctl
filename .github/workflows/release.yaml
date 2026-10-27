@@ -33,6 +33,20 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
+      # The default GITHUB_TOKEN cannot push to other repositories, so mint a
+      # short-lived token from the publisher GitHub App, scoped to the Homebrew
+      # tap and Scoop bucket only.
+      - name: Create publisher token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.PUBLISHER_APP_ID }}
+          private-key: ${{ secrets.PUBLISHER_APP_PRIVATE_KEY }}
+          owner: rackerlabs
+          repositories: |
+            homebrew-tap
+            scoop-bucket
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
@@ -40,11 +54,8 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Uncomment once the tap/bucket repositories and their PATs exist,
-          # and set skip_upload: false in .goreleaser.yaml. See the comments
-          # there for the full checklist.
-          # HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          # SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
+          HOMEBREW_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
+          SCOOP_BUCKET_TOKEN: ${{ steps.app-token.outputs.token }}
 
       # Generates SLSA build provenance for every artifact listed in
       # checksums.txt, so anyone can confirm an archive was built by this

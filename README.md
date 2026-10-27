@@ -39,7 +39,7 @@ It understands a few environment variables:
 | `BASE_URL` | Download from an internal mirror instead of GitHub (requires `VERSION`) |
 | `NO_VERIFY` | Set to `1` to skip checksum verification — not recommended |
 
-### macOS and Linux — Homebrew
+### macOS — Homebrew
 
 > Not yet available. The release pipeline builds the cask but does not publish
 > it until the `rackerlabs/homebrew-tap` repository exists; see the comments in
