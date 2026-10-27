@@ -59,7 +59,7 @@ gh attestation verify understackctl_0.1.0_linux_amd64.tar.gz --repo rackerlabs/u
 
 ### go install
 
-Requires Go 1.24+.
+Requires Go 1.26+.
 
 ```bash
 go install github.com/rackerlabs/understackctl@latest
