@@ -55,7 +55,7 @@ func KubeSeal(inputData []byte, outputPath string) error {
 }
 
 func removeTempFile(file *os.File) {
-    if err := os.Remove(file.Name()); err != nil {
-        log.Printf("Failed to remove temporary file: %v", err)
-    }
+	if err := os.Remove(file.Name()); err != nil {
+		log.Printf("Failed to remove temporary file: %v", err)
+	}
 }

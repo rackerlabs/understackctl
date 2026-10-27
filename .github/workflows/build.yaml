@@ -1,0 +1,31 @@
+name: Release Build
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+
+jobs:
+  # Validates .goreleaser.yaml so a broken release config surfaces on the pull
+  # request rather than at tag time, when it can only be fixed with another tag.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Check GoReleaser config
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          version: "~> v2"
+          args: check

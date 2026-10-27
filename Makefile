@@ -1,85 +1,75 @@
-# Makefile will understackctl go binary for multiple GOOS and GOARCH
+# Developer convenience targets.
 #
-# Output will be like this:
-# understackctl_darwin_amd64/
-#   └── understackctl
-# understackctl_windows_amd64/
-#   └── understackctl.exe
-# understackctl_darwin_amd64.tar.gz
-# understackctl_windows_amd64.zip
-#
-# package-all: will package folders into .tar.gz and for windows .zip
+# Release artifacts are built by GoReleaser, not by this file -- see
+# .goreleaser.yaml and .github/workflows/release.yaml. `make snapshot`
+# reproduces a full release locally without publishing anything.
 
-BINARY_NAME=understackctl
+BINARY_NAME := understackctl
+BUILD_DIR   := build
+GORELEASER  ?= goreleaser
 
-GOOS_LIST=linux darwin windows
-GOARCH_LIST=386 amd64 arm64
+VERSION_PKG := github.com/rackerlabs/understackctl/internal/version
+VERSION     ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+COMMIT      ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+DATE        ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
-BUILD_DIR=build
+LDFLAGS := -s -w \
+	-X $(VERSION_PKG).version=$(VERSION) \
+	-X $(VERSION_PKG).commit=$(COMMIT) \
+	-X $(VERSION_PKG).date=$(DATE)
 
-VERSION := $(shell git describe --tags --abbrev=0 --match "v[0-9]*.[0-9]*.[0-9]*" 2>/dev/null || echo "dev")
-COMMIT  := $(shell git rev-parse --short HEAD)
-LDFLAGS := -ldflags="-s -w -X 'main.version=$(VERSION)' -X 'main.commit=$(COMMIT)'"
+.DEFAULT_GOAL := help
 
-.PHONY: all
-all: build build-all package-all
+.PHONY: help
+help: ## Show this help
+	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
-build:
-	@echo "Building for current OS/Arch..."
-	@mkdir -p $(BUILD_DIR)/$(BINARY_NAME)
-	CGO_ENABLED=0 GOOS=$(shell go env GOOS) GOARCH=$(shell go env GOARCH) go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)/$(BINARY_NAME) .
-
-.PHONY: build-all
-build-all:
+build: ## Build for the current platform into build/
 	@mkdir -p $(BUILD_DIR)
-	@for GOOS in $(GOOS_LIST); do \
-		for GOARCH in $(GOARCH_LIST); do \
-			if [ "$$GOOS" = "darwin" ] && [ "$$GOARCH" = "386" ]; then \
-				continue; \
-			fi; \
-			DIR=$(BUILD_DIR)/$(BINARY_NAME)_$$GOOS\_$$GOARCH; \
-			EXT=$$([ "$$GOOS" = "windows" ] && echo ".exe" || echo ""); \
-			OUTFILE=$$DIR/$(BINARY_NAME)$$EXT; \
-			mkdir -p $$DIR; \
-			echo "Building $$OUTFILE..."; \
-			CGO_ENABLED=0 GOOS=$$GOOS GOARCH=$$GOARCH go build $(LDFLAGS) -o $$OUTFILE . || echo "Failed to build $$GOOS/$$GOARCH"; \
-		done \
-	done
+	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o $(BUILD_DIR)/$(BINARY_NAME) .
+	@echo "built $(BUILD_DIR)/$(BINARY_NAME) ($(VERSION))"
 
-# Loops over all the dirs in build/ folder
-# for windows build zip
-# else use .tar.gz
-.PHONY: package-all
-package-all:
-	@echo "Packaging builds..."
-	@cd $(BUILD_DIR) && for d in $(BINARY_NAME)_*; do \
-		if echo $$d | grep -q "windows"; then \
-			zip -qr "$$d.zip" "$$d"; \
-		else \
-			tar -czf "$$d.tar.gz" "$$d"; \
-		fi \
-	done
+.PHONY: install
+install: ## Install into $$GOBIN (or $$GOPATH/bin)
+	CGO_ENABLED=0 go install -trimpath -ldflags '$(LDFLAGS)' .
 
+.PHONY: test
+test: ## Run tests
+	go test ./...
 
-# Loops over *.zip and *.tar.gz in build/
-# Uses sha256sum if available (Linux)
-# Falls back to shasum -a 256 on macOS
-# Outputs clean filenames without ./
-# Result is stored in build/checksums.txt
-.PHONY: checksums
-checksums:
-	@echo "Generating checksums..."
-	@cd $(BUILD_DIR) && \
-	for f in *.zip *.tar.gz; do \
-		if command -v sha256sum >/dev/null 2>&1; then \
-			sha256sum "$$f"; \
-		else \
-			shasum -a 256 "$$f"; \
-		fi; \
-	done | sort > checksums.txt
+.PHONY: lint
+lint: ## Run golangci-lint
+	golangci-lint run
 
-# remove build dir
+.PHONY: fmt
+fmt: ## Format all Go sources
+	gofmt -w -l .
+
+.PHONY: fmt-check
+fmt-check: ## Fail if any Go source is not gofmt-clean
+	@out=$$(gofmt -l .); \
+	if [ -n "$$out" ]; then \
+		echo "not gofmt-clean:"; echo "$$out"; exit 1; \
+	fi
+
+.PHONY: tidy
+tidy: ## Tidy go.mod / go.sum
+	go mod tidy
+
+.PHONY: completions
+completions: ## Generate shell completions into completions/
+	sh ./scripts/completions.sh
+
+.PHONY: check
+check: ## Validate .goreleaser.yaml
+	$(GORELEASER) check
+
+.PHONY: snapshot
+snapshot: ## Build all release artifacts locally into dist/ (no publishing)
+	$(GORELEASER) release --snapshot --clean --skip=validate
+
 .PHONY: clean
-clean:
-	rm -rf $(BUILD_DIR)
+clean: ## Remove build output
+	rm -rf $(BUILD_DIR) dist completions
