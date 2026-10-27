@@ -15,13 +15,16 @@ import (
 	"github.com/rackerlabs/understackctl/cmd/openstack"
 	"github.com/rackerlabs/understackctl/cmd/other"
 	"github.com/rackerlabs/understackctl/cmd/quickstart"
+	cmdversion "github.com/rackerlabs/understackctl/cmd/version"
+	"github.com/rackerlabs/understackctl/internal/version"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "understackctl SUBCOMMAND ...",
-	Short: "UnderStack CLI",
-	Long:  ``,
+	Use:     "understackctl SUBCOMMAND ...",
+	Short:   "UnderStack CLI",
+	Long:    ``,
+	Version: version.Get().String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// If no subcommand, show help
 		return fmt.Errorf("a subcommand is required")
@@ -41,11 +44,7 @@ func init() {
 	rootCmd.AddCommand(openstack.NewCmdOpenstackSecrets())
 	rootCmd.AddCommand(quickstart.NewCmdQuickStart())
 	rootCmd.AddCommand(other.NewCmdOtherSecrets())
-}
-
-// SetVersion sets the version reported by `understackctl --version`.
-func SetVersion(version, commit string) {
-	rootCmd.Version = fmt.Sprintf("%s (%s)", version, commit)
+	rootCmd.AddCommand(cmdversion.NewCmdVersion())
 }
 
 // Execute will execute the root command

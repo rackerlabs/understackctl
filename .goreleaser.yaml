@@ -1,0 +1,183 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+#
+# Release configuration for understackctl.
+#
+# Local use:
+#   goreleaser check                     validate this file
+#   goreleaser build --snapshot --clean  cross-compile without releasing
+#   goreleaser release --snapshot --clean  build archives + checksums locally
+#
+# Releases are cut by .github/workflows/release.yaml on a v* tag.
+version: 2
+
+project_name: understackctl
+
+before:
+  hooks:
+    - go mod download
+    # Generates completions/ for inclusion in the archives.
+    - sh ./scripts/completions.sh
+
+builds:
+  - id: understackctl
+    binary: understackctl
+    main: .
+    env:
+      - CGO_ENABLED=0
+    flags:
+      # -trimpath keeps absolute build paths out of the binary, which is what
+      # makes the output reproducible.
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/rackerlabs/understackctl/internal/version.version={{ .Version }}
+      - -X github.com/rackerlabs/understackctl/internal/version.commit={{ .ShortCommit }}
+      - -X github.com/rackerlabs/understackctl/internal/version.date={{ .CommitDate }}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # Pin file timestamps to the commit so repeated builds of the same tag
+    # produce byte-identical archives.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+# A single darwin_all artifact that runs on both Intel and Apple Silicon, so a
+# macOS user who is unsure which they have cannot pick wrong. replace: false
+# keeps the smaller per-arch archives too; install.sh and Homebrew use those.
+universal_binaries:
+  - id: understackctl-universal
+    ids:
+      - understackctl
+    name_template: understackctl
+    replace: false
+
+archives:
+  - id: archives
+    ids:
+      - understackctl
+      - understackctl-universal
+    # No wrap_in_directory: the binary sits at the archive root, so
+    # `tar xzf understackctl_*.tar.gz` yields a runnable binary rather than a
+    # directory to go hunting through.
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - LICENSE
+      - README.md
+      - src: completions/*
+        dst: completions
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot-{{ .ShortCommit }}"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - "^style:"
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Dependency updates
+      regexp: '^.*?(deps|build)(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Other work
+      order: 999
+
+release:
+  github:
+    owner: rackerlabs
+    name: understackctl
+  # A -rc/-beta tag is published as a pre-release and, because of that, is not
+  # marked "latest" even though make_latest is true.
+  prerelease: auto
+  make_latest: true
+  footer: |
+    ## Installing
+
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/rackerlabs/understackctl/main/install.sh | sh
+    ```
+
+    Or download the archive for your platform below and move `understackctl`
+    onto your `PATH`. Verify what you downloaded first:
+
+    ```bash
+    sha256sum --check --ignore-missing checksums.txt
+    gh attestation verify understackctl_*_linux_amd64.tar.gz --repo rackerlabs/understackctl
+    ```
+
+    See the [installation guide](https://github.com/rackerlabs/understackctl#installation)
+    for Homebrew, Scoop, `go install` and shell completion setup.
+
+# --- Package managers -------------------------------------------------------
+#
+# Both blocks below are configured but DISABLED (skip_upload: true) because
+# publishing needs infrastructure that does not exist yet. To turn either on:
+#
+#   1. Create the target repository under the rackerlabs org:
+#        Homebrew -> rackerlabs/homebrew-tap
+#        Scoop    -> rackerlabs/scoop-bucket
+#   2. Create a PAT with `contents: write` on that repository and add it to
+#      this repo's Actions secrets as HOMEBREW_TAP_TOKEN / SCOOP_BUCKET_TOKEN.
+#      The default GITHUB_TOKEN cannot push to another repository.
+#   3. Uncomment the matching `env:` line in .github/workflows/release.yaml.
+#   4. Change skip_upload below to false.
+#
+# Until step 4, a release builds these artifacts and does not push them, so
+# nothing here can break a release.
+
+homebrew_casks:
+  - name: understackctl
+    skip_upload: true
+    repository:
+      owner: rackerlabs
+      name: homebrew-tap
+      token: "{{ if index .Env \"HOMEBREW_TAP_TOKEN\" }}{{ .Env.HOMEBREW_TAP_TOKEN }}{{ end }}"
+    homepage: https://github.com/rackerlabs/understackctl
+    description: CLI tool for managing UnderStack deployments
+    license: apache-2.0
+    completions:
+      bash: completions/understackctl.bash
+      zsh: completions/understackctl.zsh
+      fish: completions/understackctl.fish
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/understackctl"]
+          end
+
+scoops:
+  - name: understackctl
+    skip_upload: true
+    repository:
+      owner: rackerlabs
+      name: scoop-bucket
+      token: "{{ if index .Env \"SCOOP_BUCKET_TOKEN\" }}{{ .Env.SCOOP_BUCKET_TOKEN }}{{ end }}"
+    homepage: https://github.com/rackerlabs/understackctl
+    description: CLI tool for managing UnderStack deployments
+    license: Apache-2.0
