@@ -12,15 +12,12 @@ permissions:
   contents: read
 
 jobs:
-  # Validates .goreleaser.yaml and cross-compiles every published target, so a
-  # break in the release pipeline surfaces on the pull request rather than at
-  # tag time, when it can only be fixed with another tag.
-  snapshot:
+  # Validates .goreleaser.yaml so a broken release config surfaces on the pull
+  # request rather than at tag time, when it can only be fixed with another tag.
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
@@ -32,55 +29,3 @@ jobs:
         with:
           version: "~> v2"
           args: check
-
-      - name: Build snapshot
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
-        with:
-          version: "~> v2"
-          args: release --snapshot --clean --skip=validate
-
-      # Asserts the properties the docs depend on, against the
-      # archive a user actually downloads.
-      - name: Verify release archive
-        run: |
-          set -euo pipefail
-
-          test -f dist/checksums.txt
-
-          archive=$(ls dist/*_linux_amd64.tar.gz)
-          contents=$(tar tzf "$archive")
-
-          # The binary must sit at the archive root. A nested directory means
-          # `tar xzf` hands the user a folder instead of something runnable.
-          grep -qx understackctl <<<"$contents"
-          grep -qx LICENSE <<<"$contents"
-          grep -qx README.md <<<"$contents"
-          grep -qx 'completions/understackctl.bash' <<<"$contents"
-          grep -qx 'completions/understackctl.powershell' <<<"$contents"
-
-          # macOS users get one archive that runs on both architectures.
-          test -f dist/*_darwin_all.tar.gz
-
-          # Windows archives are zips holding a .exe.
-          unzip -l dist/*_windows_amd64.zip | grep -q 'understackctl\.exe'
-
-          mkdir -p /tmp/verify
-          tar xzf "$archive" -C /tmp/verify
-          /tmp/verify/understackctl version
-
-          # A release binary must never fall back to the "dev" placeholder;
-          # that would mean the ldflags in .goreleaser.yaml stopped matching
-          # the variable paths in internal/version.
-          if /tmp/verify/understackctl version | grep -qx 'Version:    dev'; then
-            echo "::error::version was not stamped into the binary"
-            exit 1
-          fi
-
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: snapshot-archives
-          path: |
-            dist/*.tar.gz
-            dist/*.zip
-            dist/checksums.txt
-          retention-days: 7

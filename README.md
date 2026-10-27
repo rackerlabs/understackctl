@@ -137,9 +137,9 @@ make check         # validate .goreleaser.yaml
 ```
 
 `make snapshot` and `make check` need
-[GoReleaser](https://goreleaser.com/install/) on your `PATH`. Both also run in
-CI on every pull request, so a break in the release pipeline shows up before
-you tag.
+[GoReleaser](https://goreleaser.com/install/) on your `PATH`. `make check` also
+runs in CI on every pull request. Run `make snapshot` yourself before tagging
+if you have changed the release configuration.
 
 ### Releasing
 
