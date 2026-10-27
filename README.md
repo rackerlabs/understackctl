@@ -119,7 +119,6 @@ commands you run:
 
 | Tool | Needed by |
 |---|---|
-| `kubeseal` | all secret-generating commands, `quickstart` |
 | `helm` (3.8+) | `deploy render` |
 | `git` | `deploy init`, `deploy render` |
 | `argo` | `node enroll-server`, `node inspect-server` |

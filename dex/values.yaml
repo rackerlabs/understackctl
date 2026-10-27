@@ -1,0 +1,17 @@
+config:
+    staticClients:
+      - id: nautobot
+        secretEnv: NAUTOBOT_SSO_CLIENT_SECRET
+        name: "Undercloud Nautobot"
+        redirectURIs:
+          - "https://nautobot./complete/oidc/"
+      - id: argo
+        secretEnv: ARGO_SSO_CLIENT_SECRET
+        name: "Undercloud Argo"
+        redirectURIs:
+          - "https://workflows./oauth2/callback"
+      - id: argocd
+        secretEnv: ARGOCD_SSO_CLIENT_SECRET
+        name: "Undercloud ArgoCD"
+        redirectURIs:
+          - "https://argocd./auth/callback"
