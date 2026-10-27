@@ -63,7 +63,7 @@ func buildKustomizationYAML(resources []string) string {
 	sb.WriteString("kind: Kustomization\n")
 	sb.WriteString("resources:\n")
 	for _, res := range resources {
-		sb.WriteString(fmt.Sprintf("- %s\n", res))
+		fmt.Fprintf(&sb, "- %s\n", res)
 	}
 	return sb.String()
 }
