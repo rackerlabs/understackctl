@@ -145,7 +145,7 @@ homebrew_casks:
     repository:
       owner: rackerlabs
       name: homebrew-tap
-      token: "{{ if index .Env \"HOMEBREW_TAP_TOKEN\" }}{{ .Env.HOMEBREW_TAP_TOKEN }}{{ end }}"
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     homepage: https://github.com/rackerlabs/understackctl
     description: CLI tool for managing UnderStack deployments
     license: apache-2.0
@@ -164,7 +164,7 @@ scoops:
     repository:
       owner: rackerlabs
       name: scoop-bucket
-      token: "{{ if index .Env \"SCOOP_BUCKET_TOKEN\" }}{{ .Env.SCOOP_BUCKET_TOKEN }}{{ end }}"
+      token: "{{ .Env.SCOOP_BUCKET_TOKEN }}"
     homepage: https://github.com/rackerlabs/understackctl
     description: CLI tool for managing UnderStack deployments
     license: Apache-2.0
