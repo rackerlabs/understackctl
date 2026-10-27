@@ -1,0 +1,17 @@
+labels:
+    conductor:
+      node_selector_key: "understack.node.cluster.x-k8s.io/ironic-role"
+      node_selector_value: conductor
+
+  conductor:
+    initContainers:
+      - name: create-tmpdir
+        image: ghcr.io/rackerlabs/understack/openstack-client:2025.2
+        imagePullPolicy: IfNotPresent
+        command: [bash]
+        args:
+          - "-c"
+          - "mkdir -p /var/lib/openstack-helm/tmp"
+        volumeMounts:
+          - name: pod-data
+            mountPath: /var/lib/openstack-helm
