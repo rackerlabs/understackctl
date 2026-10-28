@@ -11,20 +11,25 @@ import (
 )
 
 func newCmdDeployVersions() *cobra.Command {
+	var showUnknowns bool
+
 	cmd := &cobra.Command{
 		Use:   "versions",
 		Short: "Show the UnderStack version deployed in each environment",
-		Long:  `List every environment in the deployment repo along with its understack_ref and deploy_ref from deploy.yaml.`,
-		Args:  cobra.NoArgs,
+		Long: `List every environment in the deployment repo along with its understack_ref and deploy_ref from deploy.yaml.
+Environments where either ref is unknown are hidden unless --show-unknowns is passed.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDeployVersions(".", cmd.OutOrStdout())
+			return runDeployVersions(".", cmd.OutOrStdout(), showUnknowns)
 		},
 	}
+
+	cmd.Flags().BoolVar(&showUnknowns, "show-unknowns", false, "include environments whose understack_ref or deploy_ref is unknown")
 
 	return cmd
 }
 
-func runDeployVersions(repoDir string, out io.Writer) error {
+func runDeployVersions(repoDir string, out io.Writer, showUnknowns bool) error {
 	entries, err := os.ReadDir(repoDir)
 	if err != nil {
 		return fmt.Errorf("failed to read deployment repo: %w", err)
@@ -60,8 +65,13 @@ func runDeployVersions(repoDir string, out io.Writer) error {
 			deployRef = "unknown"
 		}
 
-		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", entry.Name(), understackRef, deployRef)
 		found = true
+
+		if !showUnknowns && (understackRef == "unknown" || deployRef == "unknown") {
+			continue
+		}
+
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", entry.Name(), understackRef, deployRef)
 	}
 
 	if !found {
