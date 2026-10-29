@@ -7,21 +7,63 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/user"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
 )
 
+const labelPrefix = "understack.rackspace.com/"
+
+var invalidLabelChars = regexp.MustCompile(`[^A-Za-z0-9_.-]+`)
+
+// sanitizeLabelValue coerces s into a valid Kubernetes label value: at most 63
+// characters of alphanumerics, '-', '_' and '.', starting and ending with an
+// alphanumeric.
+func sanitizeLabelValue(s string) string {
+	s = invalidLabelChars.ReplaceAllString(s, "-")
+	if len(s) > 63 {
+		s = s[:63]
+	}
+
+	return strings.Trim(s, "-_.")
+}
+
+// submitLabels returns the comma-separated labels stamped on a submitted
+// workflow. Empty values are omitted. The workflow-kind and device-type labels
+// come from the WorkflowTemplate itself.
+func submitLabels(target, submittedBy string) string {
+	var labels []string
+	if v := sanitizeLabelValue(target); v != "" {
+		labels = append(labels, labelPrefix+"target="+v)
+	}
+	if v := sanitizeLabelValue(submittedBy); v != "" {
+		labels = append(labels, labelPrefix+"submitted-by="+v)
+	}
+
+	return strings.Join(labels, ",")
+}
+
 // submitWorkflow runs `argo submit` for the given args, which must include
-// `-o name` so that stdout is just the generated workflow name. It prints the
-// name and, if logs is set, follows the workflow logs.
-func submitWorkflow(cmd *cobra.Command, argoArgs []string, logs bool) error {
+// `-o name` so that stdout is just the generated workflow name. It labels the
+// workflow with its target, prints the name and, if logs is set, follows the
+// workflow logs.
+func submitWorkflow(cmd *cobra.Command, argoArgs []string, target string, logs bool) error {
 	currentContext, err := currentKubeContext()
 	if err != nil {
 		return fmt.Errorf("get current Kubernetes context: %w", err)
 	}
 
 	cmd.Printf("Kubernetes context: %s\n", currentContext)
+	var submittedBy string
+	if u, err := user.Current(); err == nil {
+		submittedBy = u.Username
+	}
+	if labels := submitLabels(target, submittedBy); labels != "" {
+		argoArgs = append(argoArgs, "--labels", labels)
+	}
+
 	cmd.Printf("Running: %s\n", shellQuoteCommand("argo", argoArgs))
 
 	var stdout bytes.Buffer

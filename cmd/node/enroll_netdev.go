@@ -64,7 +64,7 @@ func newCmdEnrollNetdev() *cobra.Command {
 				return err
 			}
 
-			return submitWorkflow(cmd, argoArgs, opts.Logs)
+			return submitWorkflow(cmd, argoArgs, opts.Name, opts.Logs)
 		},
 	}
 
@@ -87,7 +87,7 @@ func newCmdEnrollFW() *cobra.Command {
 				return err
 			}
 
-			return submitWorkflow(cmd, argoArgs, opts.Logs)
+			return submitWorkflow(cmd, argoArgs, opts.Name, opts.Logs)
 		},
 	}
 

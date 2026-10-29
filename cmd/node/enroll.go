@@ -41,7 +41,7 @@ func newCmdEnrollServer() *cobra.Command {
 				return err
 			}
 
-			return submitWorkflow(cmd, argoArgs, opts.Logs)
+			return submitWorkflow(cmd, argoArgs, ipAddress, opts.Logs)
 		},
 	}
 

@@ -25,7 +25,7 @@ func newCmdInspectServer() *cobra.Command {
 
 			argoArgs := buildInspectArgoArgs(nodeID)
 
-			return submitWorkflow(cmd, argoArgs, opts.Logs)
+			return submitWorkflow(cmd, argoArgs, nodeID, opts.Logs)
 		},
 	}
 
