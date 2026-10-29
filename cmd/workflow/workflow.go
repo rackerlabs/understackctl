@@ -13,6 +13,7 @@ func NewCmdWorkflow() *cobra.Command {
 	cmd.AddCommand(newCmdEnrollNetdev())
 	cmd.AddCommand(newCmdEnrollFW())
 	cmd.AddCommand(newCmdInspectServer())
+	cmd.AddCommand(newCmdList())
 
 	return cmd
 }

@@ -121,7 +121,7 @@ commands you run:
 |---|---|
 | `helm` (3.8+) | `deploy render` |
 | `git` | `deploy init`, `deploy render` |
-| `argo` | `workflow enroll-server`, `workflow enroll-netdev`, `workflow enroll-fw`, `workflow inspect-server` |
+| `argo` | `workflow enroll-server`, `workflow enroll-netdev`, `workflow enroll-fw`, `workflow inspect-server`, `workflow list` |
 | `kubectl` / a valid kubeconfig | anything that talks to a cluster |
 
 ## Development
