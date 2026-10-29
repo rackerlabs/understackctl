@@ -2,8 +2,6 @@ package node
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 
 	"github.com/spf13/cobra"
 )
@@ -25,26 +23,9 @@ func newCmdInspectServer() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			nodeID := args[0]
 
-			argoArgs := buildInspectArgoArgs(nodeID, opts)
+			argoArgs := buildInspectArgoArgs(nodeID)
 
-			currentContext, err := currentKubeContext()
-			if err != nil {
-				return fmt.Errorf("get current Kubernetes context: %w", err)
-			}
-
-			cmd.Printf("Kubernetes context: %s\n", currentContext)
-			cmd.Printf("Running: %s\n", shellQuoteCommand("argo", argoArgs))
-
-			argoCmd := exec.Command("argo", argoArgs...)
-			argoCmd.Stdin = os.Stdin
-			argoCmd.Stdout = cmd.OutOrStdout()
-			argoCmd.Stderr = cmd.ErrOrStderr()
-
-			if err := argoCmd.Run(); err != nil {
-				return fmt.Errorf("run argo inspect workflow: %w", err)
-			}
-
-			return nil
+			return submitWorkflow(cmd, argoArgs, opts.Logs)
 		},
 	}
 
@@ -53,17 +34,6 @@ func newCmdInspectServer() *cobra.Command {
 	return cmd
 }
 
-func buildInspectArgoArgs(nodeID string, opts *inspectOptions) []string {
-	args := []string{
-		"-n", enrollWorkflowNamespace,
-		"submit",
-		"--from", inspectWorkflowTemplate,
-		"-p", fmt.Sprintf("node=%s", nodeID),
-	}
-
-	if opts.Logs {
-		args = append(args, "--log")
-	}
-
-	return args
+func buildInspectArgoArgs(nodeID string) []string {
+	return buildSubmitArgs(inspectWorkflowTemplate, fmt.Sprintf("node=%s", nodeID))
 }
