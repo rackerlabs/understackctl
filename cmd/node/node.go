@@ -10,6 +10,8 @@ func NewCmdNode() *cobra.Command {
 	}
 
 	cmd.AddCommand(newCmdEnrollServer())
+	cmd.AddCommand(newCmdEnrollNetdev())
+	cmd.AddCommand(newCmdEnrollFW())
 	cmd.AddCommand(newCmdInspectServer())
 
 	return cmd

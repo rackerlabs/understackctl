@@ -121,7 +121,7 @@ commands you run:
 |---|---|
 | `helm` (3.8+) | `deploy render` |
 | `git` | `deploy init`, `deploy render` |
-| `argo` | `node enroll-server`, `node inspect-server` |
+| `argo` | `node enroll-server`, `node enroll-netdev`, `node enroll-fw`, `node inspect-server` |
 | `kubectl` / a valid kubeconfig | anything that talks to a cluster |
 
 ## Development

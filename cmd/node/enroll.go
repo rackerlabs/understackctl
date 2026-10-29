@@ -110,8 +110,7 @@ func currentKubeServer() (string, error) {
 }
 
 func shellQuoteCommand(name string, args []string) string {
-	parts := make([]string, 0, len(args)+1)
-	parts = append(parts, shellQuote(name))
+	parts := []string{shellQuote(name)}
 	for _, arg := range args {
 		parts = append(parts, shellQuote(arg))
 	}
