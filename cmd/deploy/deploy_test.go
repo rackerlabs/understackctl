@@ -665,8 +665,17 @@ func TestDeployVersions(t *testing.T) {
 		t.Fatalf("failed to write file: %v", err)
 	}
 
+	var hidden strings.Builder
+	if err := runDeployVersions(tmpDir, &hidden, false); err != nil {
+		t.Fatalf("runDeployVersions failed: %v", err)
+	}
+
+	if strings.Contains(hidden.String(), "cluster-b") || !strings.Contains(hidden.String(), "cluster-a") {
+		t.Errorf("unknown environments should be hidden by default, got: %q", hidden.String())
+	}
+
 	var out strings.Builder
-	if err := runDeployVersions(tmpDir, &out); err != nil {
+	if err := runDeployVersions(tmpDir, &out, true); err != nil {
 		t.Fatalf("runDeployVersions failed: %v", err)
 	}
 
@@ -701,7 +710,7 @@ func TestDeployVersionsNoEnvironments(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	var out strings.Builder
-	if err := runDeployVersions(tmpDir, &out); err == nil {
+	if err := runDeployVersions(tmpDir, &out, false); err == nil {
 		t.Fatal("expected error when no environments exist")
 	}
 }
