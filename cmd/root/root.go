@@ -7,8 +7,8 @@ import (
 	"github.com/rackerlabs/understackctl/cmd/deviceType"
 	"github.com/rackerlabs/understackctl/cmd/flavor"
 	"github.com/rackerlabs/understackctl/cmd/nautobotOp"
-	"github.com/rackerlabs/understackctl/cmd/node"
 	cmdversion "github.com/rackerlabs/understackctl/cmd/version"
+	"github.com/rackerlabs/understackctl/cmd/workflow"
 	"github.com/rackerlabs/understackctl/internal/version"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +29,7 @@ func init() {
 	rootCmd.AddCommand(deviceType.NewCmdDeviceType())
 	rootCmd.AddCommand(flavor.NewCmdFlavor())
 	rootCmd.AddCommand(nautobotOp.NewCmdNautobotOp())
-	rootCmd.AddCommand(node.NewCmdNode())
+	rootCmd.AddCommand(workflow.NewCmdWorkflow())
 	rootCmd.AddCommand(cmdversion.NewCmdVersion())
 }
 
