@@ -1,10 +1,8 @@
-package node
+package workflow
 
 import (
 	"fmt"
 	"net"
-	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -43,24 +41,7 @@ func newCmdEnrollServer() *cobra.Command {
 				return err
 			}
 
-			currentContext, err := currentKubeContext()
-			if err != nil {
-				return fmt.Errorf("get current Kubernetes context: %w", err)
-			}
-
-			cmd.Printf("Kubernetes context: %s\n", currentContext)
-			cmd.Printf("Running: %s\n", shellQuoteCommand("argo", argoArgs))
-
-			argoCmd := exec.Command("argo", argoArgs...)
-			argoCmd.Stdin = os.Stdin
-			argoCmd.Stdout = cmd.OutOrStdout()
-			argoCmd.Stderr = cmd.ErrOrStderr()
-
-			if err := argoCmd.Run(); err != nil {
-				return fmt.Errorf("run argo enroll workflow: %w", err)
-			}
-
-			return nil
+			return submitWorkflow(cmd, argoArgs, ipAddress, opts.Logs)
 		},
 	}
 
@@ -74,34 +55,25 @@ func newCmdEnrollServer() *cobra.Command {
 }
 
 func buildEnrollArgoArgs(cmd *cobra.Command, ipAddress string, opts *enrollOptions) ([]string, error) {
-	args := []string{
-		"-n", enrollWorkflowNamespace,
-		"submit",
-		"--from", enrollWorkflowTemplate,
-		"-p", fmt.Sprintf("ip_address=%s", ipAddress),
-	}
-
-	if opts.Logs {
-		args = append(args, "--log")
-	}
+	params := []string{fmt.Sprintf("ip_address=%s", ipAddress)}
 
 	if cmd.Flags().Changed("old-password") {
-		args = append(args, "-p", fmt.Sprintf("old_password=%s", opts.OldPassword))
+		params = append(params, fmt.Sprintf("old_password=%s", opts.OldPassword))
 	}
 
 	if cmd.Flags().Changed("firmware-update") {
-		args = append(args, "-p", fmt.Sprintf("firmware_update=%t", opts.FirmwareUpdate))
+		params = append(params, fmt.Sprintf("firmware_update=%t", opts.FirmwareUpdate))
 	}
 
 	if cmd.Flags().Changed("raid-configure") {
-		args = append(args, "-p", fmt.Sprintf("raid_configure=%t", opts.RaidConfigure))
+		params = append(params, fmt.Sprintf("raid_configure=%t", opts.RaidConfigure))
 	}
 
 	if cmd.Flags().Changed("external-cmdb-id") {
-		args = append(args, "-p", fmt.Sprintf("external_cmdb_id=%s", opts.ExternalCMDBID))
+		params = append(params, fmt.Sprintf("external_cmdb_id=%s", opts.ExternalCMDBID))
 	}
 
-	return args, nil
+	return buildSubmitArgs(enrollWorkflowTemplate, params...), nil
 }
 
 func currentKubeContext() (string, error) {
@@ -117,9 +89,28 @@ func currentKubeContext() (string, error) {
 	return config.CurrentContext, nil
 }
 
+// currentKubeServer returns the API server URL of the current context's cluster.
+func currentKubeServer() (string, error) {
+	config, err := clientcmd.NewDefaultPathOptions().GetStartingConfig()
+	if err != nil {
+		return "", err
+	}
+
+	ctx, ok := config.Contexts[config.CurrentContext]
+	if !ok {
+		return "", fmt.Errorf("current context %q not found", config.CurrentContext)
+	}
+
+	cluster, ok := config.Clusters[ctx.Cluster]
+	if !ok {
+		return "", fmt.Errorf("cluster %q not found", ctx.Cluster)
+	}
+
+	return cluster.Server, nil
+}
+
 func shellQuoteCommand(name string, args []string) string {
-	parts := make([]string, 0, len(args)+1)
-	parts = append(parts, shellQuote(name))
+	parts := []string{shellQuote(name)}
 	for _, arg := range args {
 		parts = append(parts, shellQuote(arg))
 	}

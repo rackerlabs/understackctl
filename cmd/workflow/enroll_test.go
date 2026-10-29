@@ -1,4 +1,4 @@
-package node
+package workflow
 
 import (
 	"reflect"
@@ -17,6 +17,7 @@ func TestBuildEnrollArgoArgsRequiredOnly(t *testing.T) {
 		"-n", enrollWorkflowNamespace,
 		"submit",
 		"--from", enrollWorkflowTemplate,
+		"-o", "name",
 		"-p", "ip_address=10.46.6.165",
 	}
 	if !reflect.DeepEqual(args, expected) {
@@ -59,8 +60,8 @@ func TestBuildEnrollArgoArgsOptionalFlags(t *testing.T) {
 		"-n", enrollWorkflowNamespace,
 		"submit",
 		"--from", enrollWorkflowTemplate,
+		"-o", "name",
 		"-p", "ip_address=10.46.6.165",
-		"--log",
 		"-p", "old_password=secret",
 		"-p", "firmware_update=true",
 		"-p", "raid_configure=false",
