@@ -23,6 +23,8 @@ type netdevOptions struct {
 	PortsFile      string
 	ExternalCMDBID string
 	ResourceClass  string
+	Rack           string
+	Position       string
 	Logs           bool
 }
 
@@ -45,6 +47,8 @@ func addNetdevFlags(cmd *cobra.Command, opts *netdevOptions) {
 	cmd.Flags().StringVar(&opts.PortsFile, "ports-file", "", "File (YAML or JSON) containing the ports array")
 	cmd.Flags().StringVar(&opts.ExternalCMDBID, "external-cmdb-id", "", "External CMDB identifier")
 	cmd.Flags().StringVar(&opts.ResourceClass, "resource-class", "", "Ironic resource class")
+	cmd.Flags().StringVar(&opts.Rack, "rack", "", "Rack where the node lives")
+	cmd.Flags().StringVar(&opts.Position, "position", "", "Position within the rack of the node")
 	cmd.Flags().BoolVar(&opts.Logs, "log", false, "Stream workflow logs after submission")
 	_ = cmd.MarkFlagRequired("name")
 	_ = cmd.MarkFlagRequired("physical-network")
@@ -170,6 +174,12 @@ func netdevParams(cmd *cobra.Command, opts *netdevOptions) ([]string, error) {
 	}
 	if cmd.Flags().Changed("resource-class") {
 		params = append(params, fmt.Sprintf("resource_class=%s", opts.ResourceClass))
+	}
+	if cmd.Flags().Changed("rack") {
+		params = append(params, fmt.Sprintf("rack=%s", opts.Rack))
+	}
+	if cmd.Flags().Changed("position") {
+		params = append(params, fmt.Sprintf("position=%s", opts.Position))
 	}
 
 	return params, nil

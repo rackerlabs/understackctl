@@ -19,6 +19,8 @@ type enrollOptions struct {
 	FirmwareUpdate bool
 	RaidConfigure  bool
 	ExternalCMDBID string
+	Rack           string
+	Position       string
 	Logs           bool
 }
 
@@ -49,6 +51,8 @@ func newCmdEnrollServer() *cobra.Command {
 	cmd.Flags().BoolVar(&opts.FirmwareUpdate, "firmware-update", false, "Whether to perform a firmware update")
 	cmd.Flags().BoolVar(&opts.RaidConfigure, "raid-configure", false, "Whether to configure RAID")
 	cmd.Flags().StringVar(&opts.ExternalCMDBID, "external-cmdb-id", "", "External CMDB identifier")
+	cmd.Flags().StringVar(&opts.Rack, "rack", "", "Rack where the node lives")
+	cmd.Flags().StringVar(&opts.Position, "position", "", "Position within the rack of the node")
 	cmd.Flags().BoolVar(&opts.Logs, "log", false, "Stream workflow logs after submission")
 
 	return cmd
@@ -71,6 +75,14 @@ func buildEnrollArgoArgs(cmd *cobra.Command, ipAddress string, opts *enrollOptio
 
 	if cmd.Flags().Changed("external-cmdb-id") {
 		params = append(params, fmt.Sprintf("external_cmdb_id=%s", opts.ExternalCMDBID))
+	}
+
+	if cmd.Flags().Changed("rack") {
+		params = append(params, fmt.Sprintf("rack=%s", opts.Rack))
+	}
+
+	if cmd.Flags().Changed("position") {
+		params = append(params, fmt.Sprintf("position=%s", opts.Position))
 	}
 
 	return buildSubmitArgs(enrollWorkflowTemplate, params...), nil
