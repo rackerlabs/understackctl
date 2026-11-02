@@ -17,6 +17,10 @@ func loadDeployConfig(clusterName string) (map[string]any, error) {
 		return nil, fmt.Errorf("failed to read deploy.yaml: %w", err)
 	}
 
+	return parseDeployConfig(data)
+}
+
+func parseDeployConfig(data []byte) (map[string]any, error) {
 	var config map[string]any
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse deploy.yaml: %w", err)
