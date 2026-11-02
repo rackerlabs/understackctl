@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -727,5 +728,46 @@ func TestDeployRenderDefaultsToDeployYAML(t *testing.T) {
 	expected := filepath.Join(clusterName, "deploy.yaml")
 	if !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected missing deploy.yaml path in error, got: %v", err)
+	}
+}
+
+func TestDeployVersionsFromGitReadsOriginMain(t *testing.T) {
+	repo := t.TempDir()
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repo, "-c", "user.name=test", "-c", "user.email=test@example.com"}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+	write := func(ref string) {
+		t.Helper()
+		dir := filepath.Join(repo, "cluster-a")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		content := "understack_ref: " + ref + "\ndeploy_ref: HEAD\n"
+		if err := os.WriteFile(filepath.Join(dir, "deploy.yaml"), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	git("init", "-b", "main")
+	write("v1.0.0")
+	git("add", ".")
+	git("commit", "-m", "main")
+	git("update-ref", "refs/remotes/origin/main", "HEAD")
+
+	git("checkout", "-b", "feature")
+	write("v2.0.0")
+	git("commit", "-am", "feature")
+
+	var out strings.Builder
+	if err := runDeployVersionsFromGit(repo, &out, false, false); err != nil {
+		t.Fatalf("runDeployVersionsFromGit failed: %v", err)
+	}
+
+	if !strings.Contains(out.String(), "v1.0.0") || strings.Contains(out.String(), "v2.0.0") {
+		t.Errorf("expected origin/main state, got: %q", out.String())
 	}
 }
