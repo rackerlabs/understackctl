@@ -39,6 +39,12 @@ func TestBuildEnrollArgoArgsOptionalFlags(t *testing.T) {
 	if err := cmd.Flags().Set("external-cmdb-id", "cmdb-123"); err != nil {
 		t.Fatalf("set external-cmdb-id: %v", err)
 	}
+	if err := cmd.Flags().Set("rack", "R12"); err != nil {
+		t.Fatalf("set rack: %v", err)
+	}
+	if err := cmd.Flags().Set("position", "U20"); err != nil {
+		t.Fatalf("set position: %v", err)
+	}
 	if err := cmd.Flags().Set("log", "true"); err != nil {
 		t.Fatalf("set log: %v", err)
 	}
@@ -48,6 +54,8 @@ func TestBuildEnrollArgoArgsOptionalFlags(t *testing.T) {
 		FirmwareUpdate: true,
 		RaidConfigure:  false,
 		ExternalCMDBID: "cmdb-123",
+		Rack:           "R12",
+		Position:       "U20",
 		Logs:           true,
 	}
 
@@ -66,6 +74,8 @@ func TestBuildEnrollArgoArgsOptionalFlags(t *testing.T) {
 		"-p", "firmware_update=true",
 		"-p", "raid_configure=false",
 		"-p", "external_cmdb_id=cmdb-123",
+		"-p", "rack=R12",
+		"-p", "position=U20",
 	}
 	if !reflect.DeepEqual(args, expected) {
 		t.Fatalf("unexpected args: got %#v want %#v", args, expected)

@@ -17,13 +17,15 @@ func TestBuildEnrollNetdevArgoArgs(t *testing.T) {
 		"physical-network": "physnet1",
 		"ports":            testPortsJSON,
 		"resource-class":   "generic",
+		"rack":             "R12",
+		"position":         "U20",
 	} {
 		if err := cmd.Flags().Set(k, v); err != nil {
 			t.Fatalf("set %s: %v", k, err)
 		}
 	}
 
-	opts := &netdevOptions{Name: "fw-a", PhysicalNet: "physnet1", Ports: testPortsJSON, ResourceClass: "generic"}
+	opts := &netdevOptions{Name: "fw-a", PhysicalNet: "physnet1", Ports: testPortsJSON, ResourceClass: "generic", Rack: "R12", Position: "U20"}
 	args, err := buildEnrollNetdevArgoArgs(cmd, opts)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -38,6 +40,8 @@ func TestBuildEnrollNetdevArgoArgs(t *testing.T) {
 		"-p", "physical_network=physnet1",
 		"-p", "ports=" + testPortsJSON,
 		"-p", "resource_class=generic",
+		"-p", "rack=R12",
+		"-p", "position=U20",
 	}
 	if !reflect.DeepEqual(args, expected) {
 		t.Fatalf("unexpected args: got %#v want %#v", args, expected)
