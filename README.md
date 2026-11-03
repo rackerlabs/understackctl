@@ -121,8 +121,71 @@ commands you run:
 |---|---|
 | `helm` (3.8+) | `deploy render` |
 | `git` | `deploy init`, `deploy render` |
-| `argo` | `workflow enroll-server`, `workflow enroll-netdev`, `workflow enroll-fw`, `workflow inspect-server`, `workflow list` |
+| `argo` | `workflow enroll-server`, `workflow enroll-netdev`, `workflow enroll-fw`, `workflow inspect-server`, `workflow run`, `workflow list` |
 | `kubectl` / a valid kubeconfig | anything that talks to a cluster |
+
+## Server enrollment options
+
+Only the BMC IP address is required. All flags are optional. Enrollment uses
+the current Kubernetes context and the installed `enroll-server` WorkflowTemplate.
+
+| Argument / flag | Purpose | Default when omitted |
+|---|---|---|
+| `<ip-address>` | BMC IPv4 or IPv6 address (**required**) | None |
+| `--old-password` | Existing BMC password | `calvin` |
+| `--firmware-update` | Update firmware | `false` |
+| `--raid-configure` | Configure RAID | `true`; use `--raid-configure=false` to disable |
+| `--external-cmdb-id` | External CMDB identifier | Empty |
+| `--rack` | Rack value in node extra metadata | Empty |
+| `--position` | Position value in node extra metadata | Empty |
+| `--post-inspection-runbooks` | JSON array of runbooks to run after inspection | Site ConfigMap value, or `[]` |
+| `--post-enroll-workflows` | JSON array of WorkflowTemplate names to run after enrollment | Site ConfigMap value, or `[]` |
+| `--log` | Follow workflow logs after submission | `false` |
+
+Workflow parameter defaults above come from the current Understack template;
+omitted flags leave the installed template's defaults in effect. For either
+hook flag, pass `'[]'` to disable those hooks for this enrollment.
+
+Example with every flag:
+
+```bash
+understackctl workflow enroll-server 192.0.2.10 \
+  --old-password '<existing-bmc-password>' \
+  --firmware-update=false \
+  --raid-configure=true \
+  --external-cmdb-id cmdb-123 \
+  --rack rack-42 \
+  --position 12 \
+  --post-inspection-runbooks '[]' \
+  --post-enroll-workflows '["my-post-enrollment-workflow"]' \
+  --log
+```
+
+`--post-enroll-workflows` requires an installed `enroll-server` WorkflowTemplate
+that exposes `post_enroll_workflows` as a workflow-level parameter.
+Each listed template must expose a `run` template accepting `node_uuid`.
+
+## Run a WorkflowTemplate
+
+Use `workflow run` to submit any installed WorkflowTemplate in `argo-events`
+using the current Kubernetes context. Pass parameters with repeatable
+`--parameter` (or `-p`) flags:
+
+```bash
+understackctl workflow run my-workflow \
+  --parameter node_uuid=<node-uuid> \
+  --parameter 'options=["first","second"]' --log
+```
+
+Parameter values are passed unchanged, including JSON arrays and empty values
+(`--parameter name=`). Omitted parameters use the template's defaults.
+The command prints the workflow name and Argo UI link; `--log` follows logs.
+
+For example, if your cluster has an `enable-obm-monitoring` WorkflowTemplate:
+
+```bash
+understackctl workflow run enable-obm-monitoring -p node_uuid=<uuid>
+```
 
 ## Development
 

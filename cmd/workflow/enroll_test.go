@@ -48,6 +48,14 @@ func TestBuildEnrollArgoArgsOptionalFlags(t *testing.T) {
 	if err := cmd.Flags().Set("log", "true"); err != nil {
 		t.Fatalf("set log: %v", err)
 	}
+	for flag, value := range map[string]string{
+		"post-inspection-runbooks": "[]",
+		"post-enroll-workflows":    `["first","second"]`,
+	} {
+		if err := cmd.Flags().Set(flag, value); err != nil {
+			t.Fatalf("set %s: %v", flag, err)
+		}
+	}
 
 	opts := &enrollOptions{
 		OldPassword:    "secret",
@@ -57,6 +65,9 @@ func TestBuildEnrollArgoArgsOptionalFlags(t *testing.T) {
 		Rack:           "R12",
 		Position:       "U20",
 		Logs:           true,
+
+		PostInspectionRunbooks: "[]",
+		PostEnrollWorkflows:    `["first","second"]`,
 	}
 
 	args, err := buildEnrollArgoArgs(cmd, "10.46.6.165", opts)
@@ -74,6 +85,8 @@ func TestBuildEnrollArgoArgsOptionalFlags(t *testing.T) {
 		"-p", "firmware_update=true",
 		"-p", "raid_configure=false",
 		"-p", "external_cmdb_id=cmdb-123",
+		"-p", "post_inspection_runbooks=[]",
+		"-p", `post_enroll_workflows=["first","second"]`,
 		"-p", "rack=R12",
 		"-p", "position=U20",
 	}

@@ -22,6 +22,9 @@ type enrollOptions struct {
 	Rack           string
 	Position       string
 	Logs           bool
+
+	PostInspectionRunbooks string
+	PostEnrollWorkflows    string
 }
 
 func newCmdEnrollServer() *cobra.Command {
@@ -49,8 +52,10 @@ func newCmdEnrollServer() *cobra.Command {
 
 	cmd.Flags().StringVar(&opts.OldPassword, "old-password", "", "Existing node password")
 	cmd.Flags().BoolVar(&opts.FirmwareUpdate, "firmware-update", false, "Whether to perform a firmware update")
-	cmd.Flags().BoolVar(&opts.RaidConfigure, "raid-configure", false, "Whether to configure RAID")
+	cmd.Flags().BoolVar(&opts.RaidConfigure, "raid-configure", true, "Whether to configure RAID (omitted: use the installed workflow's default)")
 	cmd.Flags().StringVar(&opts.ExternalCMDBID, "external-cmdb-id", "", "External CMDB identifier")
+	cmd.Flags().StringVar(&opts.PostInspectionRunbooks, "post-inspection-runbooks", "", "JSON array of post-inspection runbooks (defaults to site configuration)")
+	cmd.Flags().StringVar(&opts.PostEnrollWorkflows, "post-enroll-workflows", "", "JSON array of post-enrollment WorkflowTemplate names (defaults to site configuration)")
 	cmd.Flags().StringVar(&opts.Rack, "rack", "", "Rack where the node lives")
 	cmd.Flags().StringVar(&opts.Position, "position", "", "Position within the rack of the node")
 	cmd.Flags().BoolVar(&opts.Logs, "log", false, "Stream workflow logs after submission")
@@ -75,6 +80,14 @@ func buildEnrollArgoArgs(cmd *cobra.Command, ipAddress string, opts *enrollOptio
 
 	if cmd.Flags().Changed("external-cmdb-id") {
 		params = append(params, fmt.Sprintf("external_cmdb_id=%s", opts.ExternalCMDBID))
+	}
+
+	if cmd.Flags().Changed("post-inspection-runbooks") {
+		params = append(params, "post_inspection_runbooks="+opts.PostInspectionRunbooks)
+	}
+
+	if cmd.Flags().Changed("post-enroll-workflows") {
+		params = append(params, "post_enroll_workflows="+opts.PostEnrollWorkflows)
 	}
 
 	if cmd.Flags().Changed("rack") {
