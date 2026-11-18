@@ -53,10 +53,10 @@ func TestBuildEnrollFWArgoArgs(t *testing.T) {
 	for k, v := range map[string]string{
 		"name":                   "fw-a",
 		"physical-network":       "physnet1",
-		"ports":                  testPortsJSON,
 		"management-switch":      "sw1.example.com",
 		"management-switch-port": "Ethernet48",
 		"mate-serial":            "SN2",
+		"ha-role":                "primary",
 	} {
 		if err := cmd.Flags().Set(k, v); err != nil {
 			t.Fatalf("set %s: %v", k, err)
@@ -64,10 +64,11 @@ func TestBuildEnrollFWArgoArgs(t *testing.T) {
 	}
 
 	opts := &fwOptions{
-		netdevOptions:        netdevOptions{Name: "fw-a", PhysicalNet: "physnet1", Ports: testPortsJSON},
+		netdevOptions:        netdevOptions{Name: "fw-a", PhysicalNet: "physnet1"},
 		ManagementSwitch:     "sw1.example.com",
 		ManagementSwitchPort: "Ethernet48",
 		MateSerial:           "SN2",
+		HARole:               "primary",
 	}
 	args, err := buildEnrollFWArgoArgs(cmd, opts)
 	if err != nil {
@@ -81,13 +82,16 @@ func TestBuildEnrollFWArgoArgs(t *testing.T) {
 		"-o", "name",
 		"-p", "name=fw-a",
 		"-p", "physical_network=physnet1",
-		"-p", "ports=" + testPortsJSON,
 		"-p", "management_switch=sw1.example.com",
 		"-p", "management_switch_port=Ethernet48",
 		"-p", "mate_serial=SN2",
+		"-p", "ha_role=primary",
 	}
 	if !reflect.DeepEqual(args, expected) {
 		t.Fatalf("unexpected args: got %#v want %#v", args, expected)
+	}
+	if cmd.Flags().Lookup("ports") != nil || cmd.Flags().Lookup("ports-file") != nil {
+		t.Fatal("firewall enrollment must discover ports through inspection")
 	}
 }
 
