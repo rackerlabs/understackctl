@@ -14,8 +14,7 @@ const (
 	enrollFWWorkflowTemplate     = "wftmpl/enroll-fw"
 )
 
-// netdevOptions holds the flags shared by enroll-netdev and enroll-fw, since
-// enroll-fw reuses the enroll-netdev node/port lifecycle.
+// netdevOptions holds values shared by enroll-netdev and enroll-fw.
 type netdevOptions struct {
 	Name           string
 	PhysicalNet    string
@@ -34,6 +33,7 @@ type fwOptions struct {
 	ManagementSwitch     string
 	ManagementSwitchPort string
 	MateSerial           string
+	HARole               string
 	Serial               string
 	Vendor               string
 	Model                string
@@ -41,10 +41,14 @@ type fwOptions struct {
 }
 
 func addNetdevFlags(cmd *cobra.Command, opts *netdevOptions) {
-	cmd.Flags().StringVar(&opts.Name, "name", "", "Node name (required)")
-	cmd.Flags().StringVar(&opts.PhysicalNet, "physical-network", "", "Physical network (required)")
+	addNetdevCommonFlags(cmd, opts)
 	cmd.Flags().StringVar(&opts.Ports, "ports", "", "Ports as a JSON array")
 	cmd.Flags().StringVar(&opts.PortsFile, "ports-file", "", "File (YAML or JSON) containing the ports array")
+}
+
+func addNetdevCommonFlags(cmd *cobra.Command, opts *netdevOptions) {
+	cmd.Flags().StringVar(&opts.Name, "name", "", "Node name (required)")
+	cmd.Flags().StringVar(&opts.PhysicalNet, "physical-network", "", "Physical network (required)")
 	cmd.Flags().StringVar(&opts.ExternalCMDBID, "external-cmdb-id", "", "External CMDB identifier")
 	cmd.Flags().StringVar(&opts.ResourceClass, "resource-class", "", "Ironic resource class")
 	cmd.Flags().StringVar(&opts.Rack, "rack", "", "Rack where the node lives")
@@ -95,11 +99,12 @@ func newCmdEnrollFW() *cobra.Command {
 		},
 	}
 
-	addNetdevFlags(cmd, &opts.netdevOptions)
+	addNetdevCommonFlags(cmd, &opts.netdevOptions)
 	cmd.Flags().StringVar(&opts.ManagementIP, "management-ip", "", "Firewall management IP address")
 	cmd.Flags().StringVar(&opts.ManagementSwitch, "management-switch", "", "Switch FQDN the management port is on (required)")
 	cmd.Flags().StringVar(&opts.ManagementSwitchPort, "management-switch-port", "", "Switch port the management interface is on (required)")
 	cmd.Flags().StringVar(&opts.MateSerial, "mate-serial", "", "Serial number of the HA mate")
+	cmd.Flags().StringVar(&opts.HARole, "ha-role", "", "HA role (primary or secondary; requires --mate-serial)")
 	cmd.Flags().StringVar(&opts.Serial, "serial", "", "Device serial number")
 	cmd.Flags().StringVar(&opts.Vendor, "vendor", "", "Device vendor")
 	cmd.Flags().StringVar(&opts.Model, "model", "", "Device model")
@@ -169,6 +174,10 @@ func netdevParams(cmd *cobra.Command, opts *netdevOptions) ([]string, error) {
 		fmt.Sprintf("ports=%s", ports),
 	}
 
+	return appendNetdevOptionalParams(cmd, opts, params), nil
+}
+
+func appendNetdevOptionalParams(cmd *cobra.Command, opts *netdevOptions, params []string) []string {
 	if cmd.Flags().Changed("external-cmdb-id") {
 		params = append(params, fmt.Sprintf("external_cmdb_id=%s", opts.ExternalCMDBID))
 	}
@@ -181,8 +190,7 @@ func netdevParams(cmd *cobra.Command, opts *netdevOptions) ([]string, error) {
 	if cmd.Flags().Changed("position") {
 		params = append(params, fmt.Sprintf("position=%s", opts.Position))
 	}
-
-	return params, nil
+	return params
 }
 
 func buildEnrollNetdevArgoArgs(cmd *cobra.Command, opts *netdevOptions) ([]string, error) {
@@ -195,19 +203,18 @@ func buildEnrollNetdevArgoArgs(cmd *cobra.Command, opts *netdevOptions) ([]strin
 }
 
 func buildEnrollFWArgoArgs(cmd *cobra.Command, opts *fwOptions) ([]string, error) {
-	params, err := netdevParams(cmd, &opts.netdevOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	params = append(params,
+	params := []string{
+		fmt.Sprintf("name=%s", opts.Name),
+		fmt.Sprintf("physical_network=%s", opts.PhysicalNet),
 		fmt.Sprintf("management_switch=%s", opts.ManagementSwitch),
 		fmt.Sprintf("management_switch_port=%s", opts.ManagementSwitchPort),
-	)
+	}
+	params = appendNetdevOptionalParams(cmd, &opts.netdevOptions, params)
 
 	optional := []struct{ flag, param, value string }{
 		{"management-ip", "management_ip", opts.ManagementIP},
 		{"mate-serial", "mate_serial", opts.MateSerial},
+		{"ha-role", "ha_role", opts.HARole},
 		{"serial", "serial", opts.Serial},
 		{"vendor", "vendor", opts.Vendor},
 		{"model", "model", opts.Model},
