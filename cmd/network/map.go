@@ -159,72 +159,6 @@ from IP addresses down to physical switch ports.`,
 	return cmd
 }
 
-func getTrunkParentDevice(cloud, infraCloud, subportID string) (string, error) {
-	// Find which trunk this subport belongs to
-	out, err := exec.Command("openstack", "--os-cloud", cloud, "network", "trunk",
-		"list", "-f", "json").Output()
-	if err != nil {
-		return "", err
-	}
-
-	var trunks []struct {
-		ID         string `json:"ID"`
-		Name       string `json:"Name"`
-		ParentPort string `json:"Parent Port"`
-	}
-	if err := json.Unmarshal(out, &trunks); err != nil {
-		return "", err
-	}
-
-	// Get trunk details to find subports
-	for _, trunk := range trunks {
-		trunkOut, err := exec.Command("openstack", "--os-cloud", cloud, "network", "trunk",
-			"show", trunk.ID, "-f", "json").Output()
-		if err != nil {
-			continue
-		}
-
-		var trunkDetail struct {
-			SubPorts []struct {
-				PortID string `json:"port_id"`
-			} `json:"sub_ports"`
-		}
-		if err := json.Unmarshal(trunkOut, &trunkDetail); err != nil {
-			continue
-		}
-
-		// Check if this trunk contains our subport
-		for _, sp := range trunkDetail.SubPorts {
-			if sp.PortID == subportID {
-				// Found it! Now get the parent port's binding_host_id
-				parentOut, err := exec.Command("openstack", "--os-cloud", cloud, "port",
-					"show", trunk.ParentPort, "-f", "json").Output()
-				if err != nil {
-					return trunk.Name, nil // Return trunk name as fallback
-				}
-
-				var parentPort struct {
-					BindingHostID string `json:"binding_host_id"`
-				}
-				if err := json.Unmarshal(parentOut, &parentPort); err != nil {
-					return trunk.Name, nil
-				}
-
-				if parentPort.BindingHostID != "" {
-					// Get the device name from Ironic
-					if name, err := getNodeName(infraCloud, parentPort.BindingHostID); err == nil {
-						return name, nil
-					}
-				}
-
-				return trunk.Name, nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("trunk not found for subport %s", subportID)
-}
-
 // getTrunkParentsByName uses port naming conventions to infer trunk parents
 // Pattern: {prefix}-{internal|gateway}-port → {prefix}-{inside|outside}-parent
 // Example: gpuaas-poc1-pri-internal-port → gpuaas-poc1-pri-inside-parent
@@ -563,8 +497,8 @@ func mapNetwork(cmd *cobra.Command, opts *mapOptions, networkID string) error {
 	// Print table - one row per port, with multi-line for bonded links
 	clearProgress()
 	tw := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
-	fmt.Fprintln(tw, "IP ADDRESS\tSUBNET\tNAME\tSERVER\tSWITCH\tPORT")
-	fmt.Fprintln(tw, "----------\t------\t----\t------\t------\t----")
+	_, _ = fmt.Fprintln(tw, "IP ADDRESS\tSUBNET\tNAME\tSERVER\tSWITCH\tPORT")
+	_, _ = fmt.Fprintln(tw, "----------\t------\t----\t------\t------\t----")
 
 	for _, np := range neutronPorts {
 		ip := ""
@@ -648,7 +582,7 @@ func mapNetwork(cmd *cobra.Command, opts *mapOptions, networkID string) error {
 						if vlanInfo != "" {
 							portDisplay = fmt.Sprintf("%s (%s)", link.PortID, vlanInfo)
 						}
-						fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
+						_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
 							ip, subnet, portName, deviceType, link.SwitchInfo, portDisplay)
 					} else {
 						// Bonded parent port - show all links
@@ -658,25 +592,25 @@ func mapNetwork(cmd *cobra.Command, opts *mapOptions, networkID string) error {
 								portDisplay = fmt.Sprintf("%s (%s)", link.PortID, vlanInfo)
 							}
 							if i == 0 {
-								fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
+								_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
 									ip, subnet, portName, deviceType, link.SwitchInfo, portDisplay)
 							} else {
-								fmt.Fprintf(tw, "\t\t\t\t%s\t%s\n",
+								_, _ = fmt.Fprintf(tw, "\t\t\t\t%s\t%s\n",
 									link.SwitchInfo, portDisplay)
 							}
 						}
 					}
 				} else {
 					// No parent port switch info, show VLAN only
-					fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t\n",
+					_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t\n",
 						ip, subnet, portName, deviceType, fmt.Sprintf("(%s)", vlanInfo))
 				}
 			} else if np.DeviceOwner != "" {
 				deviceType = fmt.Sprintf("(%s)", strings.TrimPrefix(np.DeviceOwner, "network:"))
-				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t\n",
+				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t\n",
 					ip, subnet, portName, deviceType, "")
 			} else {
-				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t\n",
+				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t\n",
 					ip, subnet, portName, deviceType, "")
 			}
 		} else if len(np.BindingProfile.LocalLinkInformation) == 1 {
@@ -686,7 +620,7 @@ func mapNetwork(cmd *cobra.Command, opts *mapOptions, networkID string) error {
 			if vlanDisplay != "" {
 				portDisplay = fmt.Sprintf("%s (%s)", link.PortID, vlanDisplay)
 			}
-			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
 				ip, subnet, portName, serverName, link.SwitchInfo, portDisplay)
 		} else {
 			// Multiple links (bonded) - show first line with IP, then additional links
@@ -696,17 +630,17 @@ func mapNetwork(cmd *cobra.Command, opts *mapOptions, networkID string) error {
 					portDisplay = fmt.Sprintf("%s (%s)", link.PortID, vlanDisplay)
 				}
 				if i == 0 {
-					fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
+					_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
 						ip, subnet, portName, serverName, link.SwitchInfo, portDisplay)
 				} else {
-					fmt.Fprintf(tw, "\t\t\t\t%s\t%s\n",
+					_, _ = fmt.Fprintf(tw, "\t\t\t\t%s\t%s\n",
 						link.SwitchInfo, portDisplay)
 				}
 			}
 		}
 	}
 
-	tw.Flush()
+	_ = tw.Flush()
 	cmd.Printf("\n")
 
 	return nil
@@ -767,21 +701,6 @@ func getNodeName(infraCloud, nodeUUID string) (string, error) {
 	}
 
 	return node.Name, nil
-}
-
-func getParentPortPhysicalNetwork(cloud, parentPortID string) (string, error) {
-	out, err := exec.Command("openstack", "--os-cloud", cloud, "port", "show",
-		parentPortID, "-f", "json").Output()
-	if err != nil {
-		return "", err
-	}
-
-	var port neutronPort
-	if err := json.Unmarshal(out, &port); err != nil {
-		return "", err
-	}
-
-	return port.BindingProfile.PhysicalNetwork, nil
 }
 
 func getParentPortDetails(cloud, parentPortID string) (*neutronPort, error) {
